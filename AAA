@@ -1,0 +1,35 @@
+// app.post fuction for changepass where we are taking the empid and password from the user and updating the encrypted password in the database with encryiption of given password by the user if it matches the empid in the database and previous password matches with the password in the database.
+app.post("/changepass", (req, res) => {
+  const { empid, password, newpassword, confirmpassword } = req.body;
+  const query = "SELECT * FROM users WHERE empid = ?";
+  db.query(query, [empid], (err, results) => {
+    if (err) {
+      console.error("Database query error: " + err.message);
+      res.status(500).send("Error fetching user details.");
+    } else if (results.length === 0) {
+      res.status(404).send("User not found.");
+    } else {
+      const user = results[0];
+      const decryptedPassword = decrypt(user.password, 'your-secret-key');
+      if (decryptedPassword === password) {
+        if (newpassword === confirmpassword) {
+          const secretKey = 'your-secret-key'; // Replace with your actual secret key
+          const passEncrypted = encrypt(newpassword, secretKey);
+          const query = "UPDATE users SET password = ? WHERE empid = ?";
+          db.query(query, [passEncrypted, empid], (err, results) => {
+            if (err) {
+              console.error("Database query error: " + err.message);
+              res.status(500).send("Error updating password.");
+            } else {
+              res.send("Password updated successfully!");
+            }
+          });
+        } else {
+          res.send("New password and confirm password do not match.");
+        }
+      } else {
+        res.send("Incorrect password.");
+      }
+    }
+  });
+});
